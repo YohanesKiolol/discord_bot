@@ -97,10 +97,32 @@ client.once(Events.ClientReady, (readyClient) => {
 async function connectDB() {
   try {
     const dbUri = mongoUri || "mongodb://localhost:27017/discord_bot";
-    await mongoose.connect(dbUri);
-    console.log("✅ Connected to MongoDB");
+    console.log("🔄 Attempting to connect to MongoDB...");
+    console.log("📍 Database URI:", dbUri.replace(/\/\/.*@/, "//***:***@")); // Hide credentials in logs
+
+    await mongoose.connect(dbUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("✅ Connected to MongoDB successfully");
   } catch (error) {
-    console.error("❌ Failed to connect to MongoDB:", error);
+    console.error("❌ Failed to connect to MongoDB:");
+    console.error("Error details:", error.message);
+
+    if (error.message.includes("IP address")) {
+      console.error(
+        "🔥 SOLUTION: Whitelist 0.0.0.0/0 in MongoDB Atlas Network Access"
+      );
+    }
+    if (error.message.includes("authentication failed")) {
+      console.error(
+        "🔥 SOLUTION: Check your MongoDB username/password in the connection string"
+      );
+    }
+    if (error.message.includes("timeout")) {
+      console.error("🔥 SOLUTION: Check MongoDB Atlas Network Access settings");
+    }
+
     process.exit(1);
   }
 }

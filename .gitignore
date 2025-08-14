@@ -6,7 +6,6 @@ yarn-error.log*
 
 # Environment variables
 .env
-config.json
 
 # OS generated files
 .DS_Store

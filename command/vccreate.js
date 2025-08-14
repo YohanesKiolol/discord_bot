@@ -22,12 +22,7 @@ module.exports = {
             .addChannelTypes(ChannelType.GuildVoice)
             .setRequired(true)
         )
-        .addStringOption((option) =>
-          option
-            .setName("name")
-            .setDescription("The name of the voice channel")
-            .setRequired(true)
-        )
+
         .addIntegerOption((option) =>
           option
             .setName("limit")
@@ -53,7 +48,7 @@ module.exports = {
         )
     ),
   async execute(interaction) {
-    const options = interaction;
+    const { options } = interaction;
     const sub = options.getSubcommand();
     const serverData = await vccreate.findOne({ Guild: interaction.guild.id });
 
@@ -82,19 +77,19 @@ module.exports = {
           );
         } else {
           const channel = options.getChannel("channel");
-          const name = options.getString("name");
           const limit = options.getInteger("limit");
 
           await vccreate.create({
             Guild: interaction.guild.id,
             Channel: channel.id,
-            Name: name,
             Limit: limit,
             Category: channel.parentId,
           });
 
           await sendMessage(
-            `🌍 Voice channel creation system has been set up in <#${channel.id}> with the name \`${name}\` and limit \`${limit}\`.`
+            `🌍 Voice channel creation system has been set up in <#${
+              channel.id
+            }> with limit \`${limit || "unlimited"}\`.`
           );
         }
         break;
