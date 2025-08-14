@@ -96,7 +96,21 @@ client.once(Events.ClientReady, (readyClient) => {
 // Connect to MongoDB
 async function connectDB() {
   try {
-    const dbUri = mongoUri || "mongodb://localhost:27017/discord_bot";
+    let dbUri = mongoUri || "mongodb://localhost:27017/discord";
+
+    // Ensure the database name is "discord" if using MongoDB Atlas
+    if (mongoUri && !mongoUri.includes("/discord")) {
+      // If using Atlas and no database specified, append /discord
+      if (mongoUri.includes("mongodb+srv://") && !mongoUri.includes("/?")) {
+        dbUri = mongoUri + "/discord";
+      } else if (
+        mongoUri.includes("mongodb+srv://") &&
+        mongoUri.includes("/?")
+      ) {
+        dbUri = mongoUri.replace("/?", "/discord?");
+      }
+    }
+
     console.log("🔄 Attempting to connect to MongoDB...");
     console.log("📍 Database URI:", dbUri.replace(/\/\/.*@/, "//***:***@")); // Hide credentials in logs
 

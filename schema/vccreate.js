@@ -5,6 +5,7 @@ let vccreate = new Schema({
   Channel: String,
   Limit: String,
   Category: String,
+  Name: String, // Optional custom name for this trigger channel setup
 });
 
 module.exports = model("vccreate", vccreate);

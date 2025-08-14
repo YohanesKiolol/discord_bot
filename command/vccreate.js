@@ -22,7 +22,6 @@ module.exports = {
             .addChannelTypes(ChannelType.GuildVoice)
             .setRequired(true)
         )
-
         .addIntegerOption((option) =>
           option
             .setName("limit")
@@ -30,11 +29,33 @@ module.exports = {
             .setMinValue(1)
             .setMaxValue(99)
         )
+        .addStringOption((option) =>
+          option
+            .setName("name")
+            .setDescription("Custom name for this trigger channel setup")
+        )
+    )
+    .addSubcommand((command) =>
+      command
+        .setName("remove")
+        .setDescription("Remove a specific trigger channel")
+        .addChannelOption((option) =>
+          option
+            .setName("channel")
+            .setDescription("The trigger channel to remove")
+            .addChannelTypes(ChannelType.GuildVoice)
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((command) =>
+      command
+        .setName("list")
+        .setDescription("List all trigger channels in this server")
     )
     .addSubcommand((command) =>
       command
         .setName("disable")
-        .setDescription("Disable the voice channel creation system")
+        .setDescription("Disable all voice channel creation systems")
     )
     .addSubcommand((command) =>
       command
@@ -50,7 +71,6 @@ module.exports = {
   async execute(interaction) {
     const { options } = interaction;
     const sub = options.getSubcommand();
-    const serverData = await vccreate.findOne({ Guild: interaction.guild.id });
 
     async function sendMessage(message) {
       const embed = new EmbedBuilder()
@@ -71,28 +91,104 @@ module.exports = {
             "⚠️ Only administrators can use this command."
           );
         }
-        if (serverData) {
+
+        const channel = options.getChannel("channel");
+        const limit = options.getInteger("limit");
+        const customName = options.getString("name");
+
+        // Check if this specific channel is already a trigger channel
+        const existingChannel = await vccreate.findOne({
+          Guild: interaction.guild.id,
+          Channel: channel.id,
+        });
+
+        if (existingChannel) {
           return await sendMessage(
-            "⚠️ Voice channel creation system is already set up."
-          );
-        } else {
-          const channel = options.getChannel("channel");
-          const limit = options.getInteger("limit");
-
-          await vccreate.create({
-            Guild: interaction.guild.id,
-            Channel: channel.id,
-            Limit: limit,
-            Category: channel.parentId,
-          });
-
-          await sendMessage(
-            `🌍 Voice channel creation system has been set up in <#${
-              channel.id
-            }> with limit \`${limit || "unlimited"}\`.`
+            `⚠️ <#${channel.id}> is already set up as a trigger channel.`
           );
         }
+
+        await vccreate.create({
+          Guild: interaction.guild.id,
+          Channel: channel.id,
+          Limit: limit,
+          Category: channel.parentId,
+          Name: customName || `Trigger ${channel.name}`,
+        });
+
+        await sendMessage(
+          `🌍 Voice channel creation system has been set up in <#${
+            channel.id
+          }> with limit \`${limit || "unlimited"}\`${
+            customName ? ` and name \`${customName}\`` : ""
+          }.`
+        );
         break;
+
+      case "remove":
+        if (
+          !interaction.member.permissions.has(
+            PermissionsBitField.Flags.Administrator
+          )
+        ) {
+          return await sendMessage(
+            "⚠️ Only administrators can use this command."
+          );
+        }
+
+        const channelToRemove = options.getChannel("channel");
+        const triggerChannel = await vccreate.findOne({
+          Guild: interaction.guild.id,
+          Channel: channelToRemove.id,
+        });
+
+        if (!triggerChannel) {
+          return await sendMessage(
+            `⚠️ <#${channelToRemove.id}> is not set up as a trigger channel.`
+          );
+        }
+
+        await vccreate.deleteOne({
+          Guild: interaction.guild.id,
+          Channel: channelToRemove.id,
+        });
+
+        await sendMessage(
+          `🗑️ Trigger channel <#${channelToRemove.id}> has been removed.`
+        );
+        break;
+
+      case "list":
+        const allTriggerChannels = await vccreate.find({
+          Guild: interaction.guild.id,
+        });
+
+        if (allTriggerChannels.length === 0) {
+          return await sendMessage(
+            "⚠️ No trigger channels are set up in this server."
+          );
+        }
+
+        const channelList = allTriggerChannels
+          .map(
+            (tc, index) =>
+              `${index + 1}. <#${tc.Channel}> - Limit: \`${
+                tc.Limit || "unlimited"
+              }\` - Name: \`${tc.Name || "N/A"}\``
+          )
+          .join("\n");
+
+        const embed = new EmbedBuilder()
+          .setColor("Blurple")
+          .setTitle("🌍 Trigger Channels")
+          .setDescription(channelList)
+          .setFooter({
+            text: `Total: ${allTriggerChannels.length} trigger channel(s)`,
+          });
+
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+        break;
+
       case "disable":
         if (
           !interaction.member.permissions.has(
@@ -103,17 +199,22 @@ module.exports = {
             "⚠️ Only administrators can use this command."
           );
         }
-        if (!serverData) {
+
+        const allChannels = await vccreate.find({
+          Guild: interaction.guild.id,
+        });
+        if (allChannels.length === 0) {
           return await sendMessage(
-            "⚠️ Voice channel creation system is not set up yet."
-          );
-        } else {
-          vccreate.deleteOne({ Guild: interaction.guild.id });
-          await sendMessage(
-            "🌍 Voice channel creation system has been disabled."
+            "⚠️ No voice channel creation systems are set up."
           );
         }
+
+        await vccreate.deleteMany({ Guild: interaction.guild.id });
+        await sendMessage(
+          `🌍 All voice channel creation systems (${allChannels.length}) have been disabled.`
+        );
         break;
+
       case "rename":
         const userData = await vccreateuser.findOne({
           User: interaction.user.id,
