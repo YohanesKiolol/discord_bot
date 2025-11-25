@@ -118,13 +118,18 @@ module.exports = {
       });
     }
 
-    // Defer reply since this might take a moment
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
     // Store original bot nickname to restore later
     let originalNickname = null;
     let shouldRestoreNickname = false;
     let disguiseName = null;
+
+    try {
+      // Defer reply since this might take a moment
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    } catch (error) {
+      console.error("Failed to defer reply:", error);
+      return; // Interaction already handled
+    }
 
     try {
       const botMember = await interaction.guild.members.fetch(
@@ -256,9 +261,14 @@ module.exports = {
         }
       }
 
-      await interaction.editReply({
-        content: `⚠️ Failed to execute prank: ${error.message}`,
-      });
+      // Try to edit reply, but don't crash if it fails
+      try {
+        await interaction.editReply({
+          content: `⚠️ Failed to execute prank: ${error.message}`,
+        });
+      } catch (editError) {
+        console.error("Failed to edit reply:", editError);
+      }
     }
   },
 };
