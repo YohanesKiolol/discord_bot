@@ -3,6 +3,7 @@ const {
   EmbedBuilder,
   ChannelType,
   PermissionsBitField,
+  MessageFlags,
 } = require("discord.js");
 const vccreate = require("../schema/vccreate");
 const vccreateuser = require("../schema/vccreateuser");
@@ -77,7 +78,7 @@ module.exports = {
         .setColor("Blurple")
         .setDescription(message);
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
 
     switch (sub) {
@@ -186,7 +187,7 @@ module.exports = {
             text: `Total: ${allTriggerChannels.length} trigger channel(s)`,
           });
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         break;
 
       case "disable":
