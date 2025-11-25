@@ -114,10 +114,7 @@ async function connectDB() {
     console.log("🔄 Attempting to connect to MongoDB...");
     console.log("📍 Database URI:", dbUri.replace(/\/\/.*@/, "//***:***@")); // Hide credentials in logs
 
-    await mongoose.connect(dbUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(dbUri);
     console.log("✅ Connected to MongoDB successfully");
   } catch (error) {
     console.error("❌ Failed to connect to MongoDB:");
